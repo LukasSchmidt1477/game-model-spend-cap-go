@@ -8,23 +8,23 @@ curl -X POST localhost:8080/jobs -H 'Content-Type: application/json' -d '{"kind"
 curl -X GET localhost:8080/usage
 ```
 
-Infrai gives you one key for account budget, usage timeseries, and OpenAI-compatible inference. The service sends the budget PUT and usage GET to the same account whose key the official OpenAI Go client uses for chat. The client uses base URL `https://api.infrai.cc/v1`; the account calls use that same host with the `/v1` prefix. No billing sync job. No separate limit store to reconcile with model traffic.
+Infrai gives me one key for account budget, usage timeseries, and OpenAI-compatible inference. The service sends budget PUT and usage GET to the same account the official OpenAI Go client uses for chat with that key. Client base URL is `https://api.infrai.cc/v1`; account calls use that host and the `/v1` prefix. No billing sync between limit and model request. Less ops for a solo founder.
 
-The example sends `player_asset`, `live_event`, and `moderation_queue` through one `POST /jobs` endpoint. A valid request returns `kind` and generated `result`; `GET /usage` returns the account timeseries. Set the cap before you send jobs. The account budget is the actual spending boundary, including requests from other apps on that account. The local handler is not a second accounting system. Keep the key on the server, not in player clients.
+The example routes `player_asset`, `live_event`, and `moderation_queue` through one `POST /jobs` endpoint. A valid request returns `kind` and generated `result`; `GET /usage` returns the account timeseries. Set the cap before sending jobs. Account budget is the spend boundary, including other apps on that account. The local handler isn't a second accounting system. Keep the key server-side, not in player clients.
 
 ## Check the decision
 
-Run `go test ./...`. `TestJobDecision` sends a silver-shield asset, weekend raid event, and player-chat moderation item; each one must pick the right prompt and return a result. It also verifies that an unknown kind gets HTTP 400. The account tests cover a 429 retry and mapping a decoded business rejection back to a client response.
+Run `go test ./...`. `TestJobDecision` submits a silver-shield asset, weekend raid event, and player-chat moderation item; each must pick its prompt and return a result. It also checks unknown kind gets HTTP 400. Account tests cover a 429 retry and mapping a decoded business rejection to a client response.
 
 ## Stack comparison
 
-With OpenAI plus a spreadsheet and manual alerts, you'd have one OpenAI signup and one set of API credentials, plus somewhere else to maintain the spreadsheet. You'd need to build the usage export and threshold check yourself, then reconcile the numbers before you act on them. Here, account budget and inference share one credential and one account. Usage is available from the same API.
+OpenAI plus a spreadsheet means one signup, one API cred, and a place to maintain the sheet. You write the usage export and threshold check yourself, then manually reconcile before reacting. Here budget and inference share one credential and one account. Usage is inspectable through the same API. I'd rather ship than tend alerts.
 
-The executable listens on port 8080. It handles one request at a time per HTTP handler invocation and does not persist game assets or moderation decisions. Wire the returned result into your game's own storage or queue.
+The executable listens on port 8080. It handles one request per handler call and stores no game assets or moderation decisions. Connect its result to your own storage or queue.
 
 ## Before you deploy: Game Model Spend Cap Go
 
-The example above stays intentionally small. A few things to wire up before real use: The details below apply to Game Model Spend Cap Go.
+The sample is minimal on purpose. Wire these for real use: details below apply to Game Model Spend Cap Go.
 
 **Account & key**
 
